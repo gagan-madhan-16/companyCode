@@ -15,21 +15,9 @@
         <div class="filters-header">
             <h2>Filters</h2>
             <div class="compact-controls">
-                <div class="upload-section">
-<!--                     <button id="upload-toggle" class="toggle-button" title="Upload data">📂 Upload Data</button> -->
-                    <div class="upload-panel">
-                        <div class="upload-area">
-                            <input type="file" id="folder-upload" webkitdirectory directory multiple />
-                            <label for="folder-upload" class="file-label">Choose Folder</label>
-                            <span id="selected-folder">No folder selected</span>
-                            <button id="upload-btn">Load Data</button>
-                        </div>
-                        <div id="upload-status"></div>   
-                        <div class="storage-management">
-                            <div id="storage-status"></div>
-                            <button id="clear-data">Clear Saved Data</button>
-                        </div>
-                    </div>
+                <div class="data-status">
+                    <div id="loading-status">Loading problem data...</div>
+                    <button id="clear-data">Clear Saved Data</button>
                 </div>
             </div>
         </div>
@@ -138,7 +126,7 @@
                 <!-- Problems will be dynamically added here -->
             </tbody>
         </table>
-        <div id="no-data-message">Upload a folder to view LeetCode problems</div>
+        <div id="no-data-message">Loading LeetCode problems from question folder...</div>
     </div>
     
     <script src="script.js"></script>

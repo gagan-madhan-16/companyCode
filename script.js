@@ -6,6 +6,45 @@ let timePeriods = new Set();
 let completedProblems = new Set();
 let revisionProblems = new Set();
 
+// List of all available companies in the question folder
+const availableCompanies = [
+    'AMD', 'Accenture', 'Accolite', 'Adobe', 'Affirm', 'Agoda', 'Airbnb', 'Airtel', 'Akamai', 'Akuna Capital',
+    'Alibaba', 'Altimetrik', 'Amazon', 'Amdocs', 'American Express', 'Anduril', 'Apple', 'Arcesium', 'Arista Networks',
+    'Atlassian', 'Attentive', 'Autodesk', 'Avito', 'BNY Mellon', 'BP', 'Baidu', 'Barclays', 'BitGo', 'BlackRock',
+    'Blizzard', 'Block', 'Bloomberg', 'Bolt', 'Booking.com', 'Box', 'ByteDance', 'CARS24', 'Cadence', 'Capgemini',
+    'Capital One', 'Cashfree', 'Chewy', 'Cisco', 'Citadel', 'Citrix', 'Cloudera', 'Cloudflare', 'Cognizant',
+    'Coinbase', 'Commvault', 'Confluent', 'ConsultAdd', 'Coupang', 'Coursera', 'CrowdStrike', 'Cruise', 'CureFit',
+    'DE Shaw', 'DP world', 'DRW', 'Darwinbox', 'Databricks', 'Datadog', 'Deliveroo', 'Dell', 'Deloitte',
+    'Deutsche Bank', 'DevRev', 'Directi', 'Disney', 'Docusign', 'DoorDash', 'Dream11', 'Dropbox', 'Dunzo',
+    'EPAM Systems', 'Epic Systems', 'Expedia', 'FactSet', 'Flexport', 'Flipkart', 'FreshWorks', 'GE Healthcare',
+    'GSN Games', 'Geico', 'Gojek', 'Goldman Sachs', 'Google', 'Grab', 'Grammarly', 'Graviton', 'Groww', 'HCL',
+    'HPE', 'HashedIn', 'Huawei', 'Hubspot', 'Hudson River Trading', 'Hulu', 'IBM', 'IMC', 'IXL', 'InMobi',
+    'Indeed', 'Infosys', 'Instacart', 'Intel', 'Intuit', 'J.P. Morgan', 'Jane Street', 'Jump Trading', 'Juspay',
+    'KLA', 'Karat', 'LinkedIn', 'LiveRamp', 'Lowe\'s', 'Lucid', 'Lyft', 'MakeMyTrip', 'Mastercard', 'MathWorks',
+    'Media.net', 'Meesho', 'Mercari', 'Meta', 'Microsoft', 'Millennium', 'Mitsogo', 'Moloco', 'MongoDB',
+    'Morgan Stanley', 'Moveworks', 'Myntra', 'Nagarro', 'NetApp', 'Netflix', 'Nextdoor', 'Niantic', 'Nielsen',
+    'Nike', 'Nordstrom', 'Nutanix', 'Nvidia', 'OKX', 'Okta', 'OpenAI', 'Oracle', 'Otter.ai', 'Ozon',
+    'Palantir Technologies', 'Palo Alto Networks', 'PayPal', 'Paytm', 'PhonePe', 'Pinterest', 'Pocket Gems',
+    'Point72', 'PornHub', 'Pure Storage', 'Qualcomm', 'Quora', 'RBC', 'Rakuten', 'Reddit', 'Revolut', 'Ripple',
+    'Rippling', 'Robinhood', 'Roblox', 'Roku', 'Rubrik', 'SAP', 'SIG', 'Salesforce', 'Samsara', 'Samsung',
+    'ServiceNow', 'Shopee', 'Shopify', 'Siemens', 'Sigmoid', 'Snap', 'Snowflake', 'SoFi', 'Splunk', 'Spotify',
+    'Sprinklr', 'Squarepoint Capital', 'Stripe', 'Swiggy', 'Tekion', 'Tencent', 'Tesla', 'ThoughtWorks', 'TikTok',
+    'Tinkoff', 'Trilogy', 'Turing', 'Turo', 'Twilio', 'Twitch', 'Two Sigma', 'UKG', 'Uber', 'UiPath', 'VK',
+    'VMware', 'Veeva Systems', 'Verily', 'Verkada', 'Virtu Financial', 'Visa', 'Walmart Labs', 'Warnermedia',
+    'Wayfair', 'Wells Fargo', 'Wipro', 'Wix', 'Workday', 'X', 'Yahoo', 'Yandex', 'Yelp', 'ZS Associates',
+    'ZScaler', 'Zalando', 'Zenefits', 'Zepto', 'Zeta', 'Zillow', 'Zoho', 'Zomato', 'Zopsmart', 'athenahealth',
+    'carwale', 'eBay', 'jio', 'josh technology', 'opentext', 'oyo', 'persistent systems', 'razorpay', 'tcs', 'thoughtspot'
+];
+
+// List of time periods available for each company
+const availableTimePeriods = [
+    '1. Thirty Days',
+    '2. Three Months', 
+    '3. Six Months',
+    '4. More Than Six Months',
+    '5. All'
+];
+
 // Load completed problems from localStorage if available
 function loadCompletedProblems() {
     const saved = localStorage.getItem('completedLeetCodeProblems');
@@ -315,17 +354,8 @@ function extractFileInfo(filePath, folderAnalysis) {
     return { company, timePeriod };
 }
 
-// Process uploaded files
-async function handleFileUpload(event) {
-    event.preventDefault();
-    const fileInput = document.getElementById('folder-upload');
-    const files = fileInput.files;
-    
-    if (files.length === 0) {
-        alert('Please select files to upload');
-        return;
-    }
-    
+// Load data automatically from the question folder
+async function loadDataFromQuestionFolder() {
     setLoading(true);
     
     // Clear previous data
@@ -334,135 +364,128 @@ async function handleFileUpload(event) {
     topics.clear();
     timePeriods.clear();
     
-    // Check if files follow the expected structure
-    let validFiles = 0;
-    let csvFiles = Array.from(files).filter(file => file.name.endsWith('.csv'));
+    let successfulLoads = 0;
+    let totalAttempts = 0;
     
-    // Analyze folder structure to determine the appropriate parsing strategy
-    const folderAnalysis = analyzeFolderStructure(csvFiles);
+    // Update status
+    updateLoadingStatus('Loading problem data from companies...');
     
-    // Validate folder structure
-    const hasProperStructure = folderAnalysis.mostCommonDepth >= 3; // At least /root/company/file.csv
-    
-    // Process each file
-    for (let file of csvFiles) {
-        // Extract company name and time period based on folder structure analysis
-        const { company, timePeriod } = extractFileInfo(file.webkitRelativePath, folderAnalysis);
-        
-        companies.add(company);
-        timePeriods.add(timePeriod);
-        
-        // Read file content
-        const content = await readFile(file);
-        const problems = parseCSV(content);
-        
-        if (problems.length > 0) validFiles++;
-        
-        // Add company and time period to each problem
-        problems.forEach(problem => {
-            // Only set Company if it's not already defined in the CSV
-            if (!problem.Company) {
-                problem.Company = company;
-            }
-            
-            // Only set TimePeriod if it's not already defined in the CSV
-            if (!problem.TimePeriod) {
-                problem.TimePeriod = timePeriod;
-            }
-            
-            // Extract topics if available
-            if (problem.Topics) {
-                const problemTopics = problem.Topics.split(',').map(topic => topic.trim().replace(/"/g, ''));
-                problemTopics.forEach(topic => topics.add(topic));
-            }
-            
-            // Store companies and time periods as arrays for each problem
-            if (!Array.isArray(problem.Companies)) {
-                problem.Companies = [problem.Company];
-            } else if (!problem.Companies.includes(problem.Company)) {
-                problem.Companies.push(problem.Company);
-            }
-            
-            if (!Array.isArray(problem.TimePeriods)) {
-                problem.TimePeriods = [problem.TimePeriod];
-            } else if (!problem.TimePeriods.includes(problem.TimePeriod)) {
-                problem.TimePeriods.push(problem.TimePeriod);
-            }
-        });
-        
-        // Check for duplicates and merge them instead of adding new entries
-        problems.forEach(problem => {
-            // Use Link or Title as unique identifier
-            const uniqueId = problem.Link || problem.Title;
-            if (!uniqueId) return; // Skip if no unique identifier
-            
-            // Check if this problem already exists
-            const existingIndex = allProblems.findIndex(p => 
-                (p.Link && p.Link === problem.Link) || 
-                (p.Title && p.Title === problem.Title)
-            );
-            
-            if (existingIndex >= 0) {
-                // Merge with existing problem
-                const existingProblem = allProblems[existingIndex];
+    for (const company of availableCompanies) {
+        for (const timePeriod of availableTimePeriods) {
+            try {
+                totalAttempts++;
+                const filePath = `question/${encodeURIComponent(company)}/${encodeURIComponent(timePeriod)}.csv`;
                 
-                // Add company if not already in the list
-                if (!existingProblem.Companies.includes(problem.Company)) {
-                    existingProblem.Companies.push(problem.Company);
-                }
+                // Fetch the CSV file
+                const response = await fetch(filePath);
                 
-                // Add time period if not already in the list
-                if (!existingProblem.TimePeriods.includes(problem.TimePeriod)) {
-                    existingProblem.TimePeriods.push(problem.TimePeriod);
-                }
-                
-                // Update frequency if the new one is higher
-                if (parseFloat(problem.Frequency) > parseFloat(existingProblem.Frequency || 0)) {
-                    existingProblem.Frequency = problem.Frequency;
-                }
-                
-                // Merge topics if new ones are present
-                if (problem.Topics && existingProblem.Topics) {
-                    const existingTopics = new Set(existingProblem.Topics.split(',').map(t => t.trim()));
-                    const newTopics = problem.Topics.split(',').map(t => t.trim());
+                if (response.ok) {
+                    const csvContent = await response.text();
                     
-                    newTopics.forEach(topic => existingTopics.add(topic));
-                    existingProblem.Topics = Array.from(existingTopics).join(', ');
-                } else if (problem.Topics) {
-                    existingProblem.Topics = problem.Topics;
+                    // Only process if file has content beyond just headers
+                    if (csvContent.trim().split('\n').length > 1) {
+                        const problems = parseCSV(csvContent);
+                        
+                        if (problems.length > 0) {
+                            successfulLoads++;
+                            
+                            // Add company and time period information
+                            companies.add(company);
+                            timePeriods.add(timePeriod);
+                            
+                            problems.forEach(problem => {
+                                // Set company and time period
+                                problem.Company = company;
+                                problem.TimePeriod = timePeriod;
+                                
+                                // Extract topics if available
+                                if (problem.Topics) {
+                                    const problemTopics = problem.Topics.split(',').map(topic => topic.trim().replace(/"/g, ''));
+                                    problemTopics.forEach(topic => topics.add(topic));
+                                }
+                                
+                                // Store companies and time periods as arrays for each problem
+                                problem.Companies = [company];
+                                problem.TimePeriods = [timePeriod];
+                            });
+                            
+                            // Check for duplicates and merge them instead of adding new entries
+                            problems.forEach(problem => {
+                                // Use Link or Title as unique identifier
+                                const uniqueId = problem.Link || problem.Title;
+                                if (!uniqueId) return; // Skip if no unique identifier
+                                
+                                // Check if this problem already exists
+                                const existingIndex = allProblems.findIndex(p => 
+                                    (p.Link && p.Link === problem.Link) || 
+                                    (p.Title && p.Title === problem.Title)
+                                );
+                                
+                                if (existingIndex >= 0) {
+                                    // Merge with existing problem
+                                    const existingProblem = allProblems[existingIndex];
+                                    
+                                    // Add company if not already in the list
+                                    if (!existingProblem.Companies.includes(problem.Company)) {
+                                        existingProblem.Companies.push(problem.Company);
+                                    }
+                                    
+                                    // Add time period if not already in the list
+                                    if (!existingProblem.TimePeriods.includes(problem.TimePeriod)) {
+                                        existingProblem.TimePeriods.push(problem.TimePeriod);
+                                    }
+                                    
+                                    // Update frequency if the new one is higher
+                                    if (parseFloat(problem.Frequency) > parseFloat(existingProblem.Frequency || 0)) {
+                                        existingProblem.Frequency = problem.Frequency;
+                                    }
+                                    
+                                    // Merge topics if new ones are present
+                                    if (problem.Topics && existingProblem.Topics) {
+                                        const existingTopics = new Set(existingProblem.Topics.split(',').map(t => t.trim()));
+                                        const newTopics = problem.Topics.split(',').map(t => t.trim());
+                                        
+                                        newTopics.forEach(topic => existingTopics.add(topic));
+                                        existingProblem.Topics = Array.from(existingTopics).join(', ');
+                                    } else if (problem.Topics) {
+                                        existingProblem.Topics = problem.Topics;
+                                    }
+                                    
+                                    // Use the highest acceptance rate
+                                    const existingRate = parseFloat(existingProblem["Acceptance Rate"] || existingProblem.Acceptance_Rate || 0);
+                                    const newRate = parseFloat(problem["Acceptance Rate"] || problem.Acceptance_Rate || 0);
+                                    if (newRate > existingRate) {
+                                        existingProblem["Acceptance Rate"] = problem["Acceptance Rate"];
+                                        existingProblem.Acceptance_Rate = problem.Acceptance_Rate;
+                                    }
+                                } else {
+                                    // Add new problem to the list
+                                    allProblems.push(problem);
+                                }
+                            });
+                        }
+                    }
                 }
-                
-                // Use the highest acceptance rate
-                const existingRate = parseFloat(existingProblem["Acceptance Rate"] || existingProblem.Acceptance_Rate || 0);
-                const newRate = parseFloat(problem["Acceptance Rate"] || problem.Acceptance_Rate || 0);
-                if (newRate > existingRate) {
-                    existingProblem["Acceptance Rate"] = problem["Acceptance Rate"];
-                    existingProblem.Acceptance_Rate = problem.Acceptance_Rate;
-                }
-            } else {
-                // Add new problem to the list
-                allProblems.push(problem);
+            } catch (error) {
+                // File doesn't exist or can't be loaded - this is expected for some companies
+                // Don't log these as errors since not all companies have all time periods
             }
-        });
+        }
+        
+        // Update progress
+        if (successfulLoads > 0) {
+            updateLoadingStatus(`Loaded ${successfulLoads} files from ${companies.size} companies...`);
+        }
     }
     
-    // Check if we found any valid data
-    if (validFiles === 0) {
-        setLoading(false);
-        throw new Error('No valid CSV files found. Make sure your files have .csv extension and contain valid data.');
-    }
-    
-    // Check if the folder structure is correct
-    if (!hasProperStructure) {
-        console.warn('Warning: Some files may not have the proper folder structure. Expected structure is: /root/companyname/timeperiod.csv');
-        updateUploadStatus('Note: Using simplified folder structure. For best results, use: /root/companyname/timeperiod.csv', true);
-    }
+    console.log(`Successfully loaded ${successfulLoads} files out of ${totalAttempts} attempts`);
+    console.log(`Total problems: ${allProblems.length}`);
     
     // Save all data to localStorage
     const saveResult = saveAllData();
     if (!saveResult) {
         console.warn('Warning: Failed to save data to localStorage. Data will not persist after page refresh.');
-        updateUploadStatus('Warning: Data too large to save in browser storage. Data will not persist after page refresh.', true);
+        updateLoadingStatus('Warning: Data too large to save in browser storage. Data will not persist after page refresh.', true);
     }
     
     // Update filter options
@@ -470,9 +493,26 @@ async function handleFileUpload(event) {
     
     // Display all problems initially
     filterProblems();
+    
+    setLoading(false);
+    
+    if (successfulLoads > 0) {
+        updateLoadingStatus(`Successfully loaded ${allProblems.length} problems from ${companies.size} companies.`);
+    } else {
+        updateLoadingStatus('No problem data found. Make sure the question folder contains CSV files.', true);
+    }
 }
 
-// Read file content as text
+// Update loading status display
+function updateLoadingStatus(message, isError = false) {
+    const status = document.getElementById('loading-status');
+    if (status) {
+        status.textContent = message;
+        status.className = isError ? 'error' : '';
+    }
+}
+
+// Read file content as text (kept for potential future use)
 function readFile(file) {
     return new Promise((resolve, reject) => {
         const reader = new FileReader();
@@ -1014,11 +1054,10 @@ function exportToCSV(problems) {
     document.body.removeChild(link);
 }
 
-// Show upload status
+// Show loading/status messages (replacing upload status)
 function updateUploadStatus(message, isError = false) {
-    const status = document.getElementById('upload-status');
-    status.textContent = message;
-    status.className = isError ? 'status-error' : 'status-success';
+    // For backwards compatibility, redirect to updateLoadingStatus
+    updateLoadingStatus(message, isError);
 }
 
 // Update storage status display
@@ -1182,7 +1221,7 @@ function closeUploadPanelOnClickOutside(event) {
 }
 
 // Event listeners
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
     // Load completed problems
     loadCompletedProblems();
     
@@ -1192,26 +1231,25 @@ document.addEventListener('DOMContentLoaded', () => {
     // Update storage status display
     updateStorageStatus();
     
-    // Try to load saved data from localStorage
+    // Try to load saved data from localStorage first
     if (loadAllData()) {
         // If data loaded successfully, update UI
         updateFilterOptions();
         filterProblems();
-        updateUploadStatus('Loaded saved data from previous session');
+        updateLoadingStatus('Loaded saved data from previous session');
         
         // Update count of loaded companies in status
         if (companies.size > 0) {
-            updateUploadStatus(`Loaded ${allProblems.length} problems from ${companies.size} companies.`);
+            updateLoadingStatus(`Loaded ${allProblems.length} problems from ${companies.size} companies.`);
         }
-    }
-    
-    // Set up upload toggle button
-    const uploadToggleBtn = document.getElementById('upload-toggle');
-    if (uploadToggleBtn) {
-        uploadToggleBtn.addEventListener('click', function(event) {
-            event.stopPropagation();
-            toggleUploadPanel();
-        });
+    } else {
+        // If no saved data, load from question folder
+        try {
+            await loadDataFromQuestionFolder();
+        } catch (error) {
+            updateLoadingStatus(`Error loading data: ${error.message}`, true);
+            console.error(error);
+        }
     }
     
     // Set up Clear Data button
@@ -1220,33 +1258,13 @@ document.addEventListener('DOMContentLoaded', () => {
         clearDataBtn.addEventListener('click', () => {
             if (confirm('Are you sure you want to clear all saved data? This cannot be undone.')) {
                 if (clearSavedData()) {
-                    updateUploadStatus('All saved data has been cleared');
+                    updateLoadingStatus('All saved data has been cleared');
+                    // Reload data from question folder
+                    loadDataFromQuestionFolder();
                 }
             }
         });
     }
-    
-    // Set up file input change event
-    const fileInput = document.getElementById('folder-upload');
-    fileInput.addEventListener('change', () => {
-        updateSelectedFolder(fileInput.files);
-    });
-    
-    // Set up other event listeners
-    document.getElementById('upload-btn').addEventListener('click', async (event) => {
-        try {
-            document.getElementById('upload-btn').disabled = true;
-            updateUploadStatus('Loading data...');
-            await handleFileUpload(event);
-            updateUploadStatus(`Successfully loaded ${allProblems.length} problems from ${companies.size} companies.`);
-            updateStorageStatus();
-        } catch (error) {
-            updateUploadStatus(`Error loading data: ${error.message}`, true);
-            console.error(error);
-        } finally {
-            document.getElementById('upload-btn').disabled = false;
-        }
-    });
     
     // Add event listener for search input
     document.getElementById('search-input').addEventListener('input', () => {
